@@ -1,10 +1,12 @@
 import CodeEditor from "@/components/core/CodeEditor";
 import Divider from "@/components/core/Divider";
 import PickerModal, { PickerOption } from "@/components/core/PickerModal";
+import SnippetExtras from "@/components/snippets/SnippetExtras";
 import TagInput from "@/components/snippets/TagInput";
 import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
 import { LANGUAGES, getLanguage } from "@/lib/language";
+import { pickDocument, pickImageFromLibrary } from "@/services/files";
 import { useSettingsStore } from "@/store/settingsStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -26,6 +28,7 @@ export type SnippetFormValues = {
   language: string;
   isFavorite: boolean;
   tags: string[];
+  attachments: DraftAttachment[];
 };
 
 type SnippetFormProps = {
@@ -56,7 +59,19 @@ const SnippetForm = ({
     initialValues?.isFavorite ?? false,
   );
   const [tags, setTags] = useState<string[]>(initialValues?.tags ?? []);
+  const [attachments, setAttachments] = useState<DraftAttachment[]>(
+    initialValues?.attachments ?? [],
+  );
   const [showPicker, setShowPicker] = useState(false);
+
+  const handleAdd = async (kind: AttachmentKind) => {
+    const draft =
+      kind === "image" ? await pickImageFromLibrary() : await pickDocument();
+    if (draft) setAttachments((prev) => [...prev, draft]);
+  };
+
+  const handleDelete = (item: { uri: string }) =>
+    setAttachments((prev) => prev.filter((a) => a.uri !== item.uri));
 
   const lang = getLanguage(language);
   const langName = (lang?.name ?? language).toUpperCase();
@@ -76,6 +91,7 @@ const SnippetForm = ({
       language,
       isFavorite,
       tags,
+      attachments,
     });
   };
 
@@ -227,6 +243,15 @@ const SnippetForm = ({
             TAGS
           </Text>
           <TagInput value={tags} onChange={setTags} />
+
+          {/* AI (dummy) + attachments — drafts saved with the snippet */}
+          <View style={styles.extras}>
+            <SnippetExtras
+              attachments={attachments}
+              onAdd={handleAdd}
+              onDelete={handleDelete}
+            />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -291,6 +316,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   tagsLabel: {
+    marginTop: spacing.lg,
+  },
+  extras: {
     marginTop: spacing.lg,
   },
   titleInput: {

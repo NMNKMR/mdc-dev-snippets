@@ -1,8 +1,17 @@
 import CodeEditor from "@/components/core/CodeEditor";
+import CodeViewerModal from "@/components/snippets/CodeViewerModal";
 import ActionButton from "@/components/snippets/details/ActionButton";
 import LanguageBadge from "@/components/snippets/LanguageBadge";
+import SnippetExtras from "@/components/snippets/SnippetExtras";
+import { type AttachmentItem } from "@/components/snippets/AttachmentBox";
 import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
+import {
+    useAddDocumentAttachment,
+    useAddImageAttachment,
+    useAttachments,
+    useDeleteAttachment,
+} from "@/hooks/useAttachments";
 import {
     useDeleteSnippet,
     useSnippet,
@@ -49,10 +58,15 @@ export default function SnippetDetail() {
 
   const { data: snippet, isLoading } = useSnippet(id);
   const { data: tags = [] } = useSnippetTags(id);
+  const { data: attachments = [] } = useAttachments(id);
   const { mutate: toggleFavorite } = useToggleFavorite();
   const { mutateAsync: deleteSnippet } = useDeleteSnippet();
+  const { mutate: addImage } = useAddImageAttachment(id);
+  const { mutate: addDocument } = useAddDocumentAttachment(id);
+  const { mutate: removeAttachment } = useDeleteAttachment();
 
   const [copied, setCopied] = useState(false);
+  const [codeFullscreen, setCodeFullscreen] = useState(false);
 
   if (isLoading) {
     return (
@@ -189,26 +203,55 @@ export default function SnippetDetail() {
             },
           ]}
         >
-          <Pressable
-            hitSlop={8}
-            onPress={handleCopy}
-            style={[
-              styles.copyBtn,
-              { backgroundColor: colors.surfaceContainerHigh },
-            ]}
-          >
-            <Ionicons
-              name={copied ? "checkmark" : "copy-outline"}
-              size={18}
-              color={copied ? colors.primary : colors.onSurfaceVariant}
-            />
-          </Pressable>
+          <View style={styles.codeActions}>
+            <Pressable
+              hitSlop={8}
+              onPress={() => setCodeFullscreen(true)}
+              style={[
+                styles.codeActionBtn,
+                { backgroundColor: colors.surfaceContainerHigh },
+              ]}
+            >
+              <Ionicons
+                name="expand-outline"
+                size={18}
+                color={colors.onSurfaceVariant}
+              />
+            </Pressable>
+            <Pressable
+              hitSlop={8}
+              onPress={handleCopy}
+              style={[
+                styles.codeActionBtn,
+                { backgroundColor: colors.surfaceContainerHigh },
+              ]}
+            >
+              <Ionicons
+                name={copied ? "checkmark" : "copy-outline"}
+                size={18}
+                color={copied ? colors.primary : colors.onSurfaceVariant}
+              />
+            </Pressable>
+          </View>
           <CodeEditor
             value={snippet.code}
             language={snippet.language}
             mode="read"
             showLineNumbers
             fontSize={fontSize}
+          />
+        </View>
+
+        {/* AI (dummy) + attachments — saved instantly on the detail screen */}
+        <View style={styles.extras}>
+          <SnippetExtras
+            attachments={attachments}
+            onAdd={(kind) =>
+              kind === "image" ? addImage("library") : addDocument()
+            }
+            onDelete={(item: AttachmentItem) => {
+              if (item.id) removeAttachment({ id: item.id, snippetId: id });
+            }}
           />
         </View>
       </ScrollView>
@@ -240,6 +283,13 @@ export default function SnippetDetail() {
           onPress={handleDelete}
         />
       </View>
+
+      <CodeViewerModal
+        visible={codeFullscreen}
+        code={snippet.code}
+        language={snippet.language}
+        onClose={() => setCodeFullscreen(false)}
+      />
     </View>
   );
 }
@@ -299,11 +349,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: "hidden",
   },
-  copyBtn: {
+  extras: {
+    marginTop: spacing.lg,
+  },
+  codeActions: {
     position: "absolute",
     top: spacing.sm,
     right: spacing.sm,
     zIndex: 1,
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  codeActionBtn: {
     width: 36,
     height: 36,
     borderRadius: radius.md,

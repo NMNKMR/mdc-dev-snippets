@@ -1,7 +1,7 @@
 import { db } from "./client";
 
 // Bump this when schema changes; add a matching `if (current < N)` block below.
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 type VersionRow = { user_version: number };
 
@@ -52,6 +52,23 @@ export async function migrate(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_snippet_tags_tag
         ON snippet_tags(tag_id);
+    `);
+  }
+
+  if (current < 3) {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS attachments (
+        id         TEXT    PRIMARY KEY NOT NULL,
+        snippet_id TEXT    NOT NULL REFERENCES snippets(id) ON DELETE CASCADE,
+        uri        TEXT    NOT NULL,
+        name       TEXT    NOT NULL,
+        kind       TEXT    NOT NULL,
+        size       INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_attachments_snippet
+        ON attachments(snippet_id);
     `);
   }
 

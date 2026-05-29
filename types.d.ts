@@ -1,4 +1,6 @@
 type ThemeMode = "light" | "dark" | "system";
+type ExportFormat = "txt" | "js" | "json";
+type AttachmentKind = "image" | "file";
 
 interface Snippet {
   id: string;
@@ -21,6 +23,36 @@ interface SnippetRow {
   updated_at: number;
   // Present only on rows from the tag-join queries (GROUP_CONCAT result).
   tags?: string | null;
+}
+
+interface Attachment {
+  id: string;
+  snippetId: string;
+  uri: string;
+  name: string;
+  kind: AttachmentKind;
+  size: number;
+  createdAt: number;
+}
+
+// A picked-but-not-yet-persisted attachment. Held in local state on the create
+// screen (no snippet id yet); copied into storage + recorded once the snippet
+// is saved.
+interface DraftAttachment {
+  uri: string;
+  name: string;
+  kind: AttachmentKind;
+  size: number;
+}
+
+interface AttachmentRow {
+  id: string;
+  snippet_id: string;
+  uri: string;
+  name: string;
+  kind: AttachmentKind;
+  size: number;
+  created_at: number;
 }
 
 declare module "react-native-syntax-highlighter" {

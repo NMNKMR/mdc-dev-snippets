@@ -8,12 +8,14 @@ import {
   type CreateSnippetInput,
   type ListOptions,
 } from "@/services/snippets";
+import { deleteSnippetFiles, persistDraftAttachments } from "@/services/files";
 import { pruneUnusedTags, setSnippetTags } from "@/services/tags";
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { attachmentsKeys } from "./useAttachments";
 import { tagsKeys } from "./useTags";
 
 export const snippetsKeys = {
@@ -43,17 +45,26 @@ export function useSnippet(id: string) {
 export function useCreateSnippet() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: CreateSnippetInput & { tags?: string[] }) => {
-      const { tags, ...snippetInput } = input;
+    mutationFn: async (
+      input: CreateSnippetInput & {
+        tags?: string[];
+        attachments?: DraftAttachment[];
+      },
+    ) => {
+      const { tags, attachments, ...snippetInput } = input;
       const snippet = await createSnippet(snippetInput);
       if (tags && tags.length > 0) {
         await setSnippetTags(snippet.id, tags);
+      }
+      if (attachments && attachments.length > 0) {
+        await persistDraftAttachments(snippet.id, attachments);
       }
       return snippet;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
       qc.invalidateQueries({ queryKey: tagsKeys.all });
+      qc.invalidateQueries({ queryKey: attachmentsKeys.all });
     },
   });
 }
@@ -73,16 +84,24 @@ export function useUpdateSnippet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (
-      input: CreateSnippetInput & { id: string; tags?: string[] },
+      input: CreateSnippetInput & {
+        id: string;
+        tags?: string[];
+        attachments?: DraftAttachment[];
+      },
     ) => {
-      const { id, tags, ...fields } = input;
+      const { id, tags, attachments, ...fields } = input;
       await updateSnippet(id, fields);
       if (tags) await setSnippetTags(id, tags);
+      if (attachments && attachments.length > 0) {
+        await persistDraftAttachments(id, attachments);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
       qc.invalidateQueries({ queryKey: snippetsKeys.details() });
       qc.invalidateQueries({ queryKey: tagsKeys.all });
+      qc.invalidateQueries({ queryKey: attachmentsKeys.all });
     },
   });
 }
@@ -91,12 +110,14 @@ export function useDeleteSnippet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      await deleteSnippetFiles(id);
       await deleteSnippet(id);
       await pruneUnusedTags();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
       qc.invalidateQueries({ queryKey: tagsKeys.all });
+      qc.invalidateQueries({ queryKey: attachmentsKeys.all });
     },
   });
 }

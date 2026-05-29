@@ -36,7 +36,15 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow DevSnippets AI to attach screenshots to your snippets.",
+          "cameraPermission": "Allow DevSnippets AI to capture photos for your snippets."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
