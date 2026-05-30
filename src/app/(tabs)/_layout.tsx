@@ -1,10 +1,11 @@
 import Brand from "@/components/shared/Brand";
 import AddTabButton from "@/components/tabs/AddBtn";
 import SearchHeaderButton from "@/components/tabs/SearchHeaderBtn";
-import { spacing, typography } from "@/constants";
+import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
+import { StyleSheet, View } from "react-native";
 import { tabs } from "../../constants/data";
 
 export default function TabsLayout() {
@@ -25,6 +26,7 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.surfaceContainer,
           borderTopColor: colors.outlineVariant,
+          height: 68,
         },
         tabBarActiveTintColor: colors.onSurface,
         tabBarInactiveTintColor: colors.onSurfaceVariant,
@@ -45,12 +47,24 @@ export default function TabsLayout() {
               : undefined,
             tabBarIcon: tab.isAddButton
               ? () => null
-              : ({ focused, color, size }) => (
-                  <Ionicons
-                    name={focused ? tab.iconActive : tab.icon}
-                    size={20}
-                    color={color}
-                  />
+              : ({ focused, color }) => (
+                  <View style={styles.iconSlot}>
+                    <View
+                      style={[
+                        styles.indicator,
+                        {
+                          backgroundColor: focused
+                            ? colors.primaryContainer
+                            : "transparent",
+                        },
+                      ]}
+                    />
+                    <Ionicons
+                      name={focused ? tab.iconActive : tab.icon}
+                      size={20}
+                      color={color}
+                    />
+                  </View>
                 ),
             tabBarButton: tab.isAddButton
               ? () => (
@@ -63,3 +77,17 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconSlot: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  indicator: {
+    position: "absolute",
+    top: -spacing.sm,
+    width: 36,
+    height: 3,
+    borderRadius: radius.full,
+  },
+});

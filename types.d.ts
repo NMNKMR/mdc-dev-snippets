@@ -1,5 +1,5 @@
 type ThemeMode = "light" | "dark" | "system";
-type ExportFormat = "txt" | "js" | "json";
+type ExportFormat = "txt" | "source" | "json";
 type AttachmentKind = "image" | "file";
 
 interface Snippet {
@@ -52,6 +52,42 @@ interface AttachmentRow {
   name: string;
   kind: AttachmentKind;
   size: number;
+  created_at: number;
+}
+
+// --- AI ---------------------------------------------------------------------
+
+type AiKind = "explain" | "improve";
+
+interface AiExplainContent {
+  explanation: string;
+  summary: string;
+  suggestions: string[];
+}
+
+interface AiImproveContent {
+  summary: string;
+  improvedCode: string;
+  notes: string[];
+}
+
+type AiContent = AiExplainContent | AiImproveContent;
+
+interface AiGeneration {
+  id: string;
+  snippetId: string;
+  kind: AiKind;
+  content: AiContent;
+  model: string | null;
+  createdAt: number;
+}
+
+interface AiGenerationRow {
+  id: string;
+  snippet_id: string;
+  kind: AiKind;
+  content: string;
+  model: string | null;
   created_at: number;
 }
 

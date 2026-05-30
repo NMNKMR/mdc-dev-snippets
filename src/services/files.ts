@@ -1,4 +1,5 @@
 import { db } from "@/db/client";
+import { extensionForLanguage } from "@/lib/language";
 import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import { Directory, File, Paths } from "expo-file-system";
@@ -132,10 +133,15 @@ export async function captureImageDraft(): Promise<DraftAttachment | null> {
 export async function pickDocument(): Promise<DraftAttachment | null> {
   const result = await DocumentPicker.getDocumentAsync({
     copyToCacheDirectory: true,
+    // Documents only — images belong in the image attachment box.
+    type: ["text/*", "application/*"],
   });
   if (result.canceled || !result.assets?.length) return null;
 
   const a = result.assets[0];
+  // Guard for platforms where the type filter doesn't exclude images.
+  if (a.mimeType?.startsWith("image/")) return null;
+
   return { uri: a.uri, name: a.name ?? "file", kind: "file", size: a.size ?? 0 };
 }
 
@@ -244,7 +250,9 @@ export async function exportSnippet(
   format: ExportFormat,
 ): Promise<File> {
   const dir = ensureExportsDir();
-  const file = new File(dir, `${sanitizeFileName(snippet.title)}.${format}`);
+  const ext =
+    format === "source" ? extensionForLanguage(snippet.language) : format;
+  const file = new File(dir, `${sanitizeFileName(snippet.title)}.${ext}`);
 
   const content =
     format === "json"
@@ -272,9 +280,12 @@ export async function readTextFile(uri: string): Promise<string> {
   return file.text();
 }
 
-export async function shareFile(uri: string): Promise<void> {
+export async function shareFile(
+  uri: string,
+  mimeType?: string,
+): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) return;
-  await Sharing.shareAsync(uri);
+  await Sharing.shareAsync(uri, mimeType ? { mimeType } : undefined);
 }
 
 export async function exportAndShareSnippet(
@@ -282,5 +293,8 @@ export async function exportAndShareSnippet(
   format: ExportFormat,
 ): Promise<void> {
   const file = await exportSnippet(snippet, format);
-  await shareFile(file.uri);
+  // A concrete MIME type makes the OS share sheet surface file targets
+  // (Save to Files / Drive) rather than only messaging apps.
+  const mimeType = format === "json" ? "application/json" : "text/plain";
+  await shareFile(file.uri, mimeType);
 }

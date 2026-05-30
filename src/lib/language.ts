@@ -55,3 +55,17 @@ export const isTextFileName = (name: string): boolean =>
 
 export const languageFromFileName = (name: string): string =>
   EXTENSION_LANGUAGE[extensionOf(name)] ?? "text";
+
+// The real source-file extension for a snippet's language (no leading dot).
+const LANGUAGE_EXTENSION: Record<string, string> = {
+  javascript: "js",
+  typescript: "ts",
+  python: "py",
+  go: "go",
+  rust: "rs",
+  swift: "swift",
+  kotlin: "kt",
+};
+
+export const extensionForLanguage = (id: string): string =>
+  LANGUAGE_EXTENSION[id] ?? "txt";

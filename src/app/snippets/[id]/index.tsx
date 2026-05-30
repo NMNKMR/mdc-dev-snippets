@@ -1,4 +1,5 @@
 import CodeEditor from "@/components/core/CodeEditor";
+import PickerModal, { type PickerOption } from "@/components/core/PickerModal";
 import CodeViewerModal from "@/components/snippets/CodeViewerModal";
 import ActionButton from "@/components/snippets/details/ActionButton";
 import LanguageBadge from "@/components/snippets/LanguageBadge";
@@ -18,6 +19,8 @@ import {
     useToggleFavorite,
 } from "@/hooks/useSnippets";
 import { useSnippetTags } from "@/hooks/useTags";
+import { extensionForLanguage } from "@/lib/language";
+import { exportAndShareSnippet } from "@/services/files";
 import { useSettingsStore } from "@/store/settingsStore";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
@@ -67,6 +70,7 @@ export default function SnippetDetail() {
 
   const [copied, setCopied] = useState(false);
   const [codeFullscreen, setCodeFullscreen] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   if (isLoading) {
     return (
@@ -105,10 +109,22 @@ export default function SnippetDetail() {
     });
   };
 
-  const handleExport = () => {
-    // No export service yet — fall back to the system share sheet so the raw
-    // code can still leave the app (save to Files, etc.).
-    Share.share({ message: snippet.code });
+  const exportOptions: PickerOption<ExportFormat>[] = [
+    { value: "txt", label: "Plain text (.txt)" },
+    {
+      value: "source",
+      label: `Source file (.${extensionForLanguage(snippet.language)})`,
+    },
+    { value: "json", label: "Backup data (.json)" },
+  ];
+
+  const handleExportFormat = async (format: ExportFormat) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await exportAndShareSnippet(snippet, format);
+    } catch {
+      Alert.alert("Export failed", "Could not export this snippet.");
+    }
   };
 
   const handleDelete = () => {
@@ -275,7 +291,7 @@ export default function SnippetDetail() {
         <ActionButton
           icon="download-outline"
           label="Export"
-          onPress={handleExport}
+          onPress={() => setShowExport(true)}
         />
         <ActionButton
           icon="trash-outline"
@@ -289,6 +305,15 @@ export default function SnippetDetail() {
         code={snippet.code}
         language={snippet.language}
         onClose={() => setCodeFullscreen(false)}
+      />
+
+      <PickerModal
+        visible={showExport}
+        title="Export as"
+        options={exportOptions}
+        selected="txt"
+        onSelect={handleExportFormat}
+        onClose={() => setShowExport(false)}
       />
     </View>
   );
