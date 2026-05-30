@@ -14,11 +14,17 @@ import {
 } from "react-native";
 
 type Props = {
-  snippet: Snippet;
-  onGenerated: () => void;
+  // Optional — on the create form there's no saved snippet yet. When omitted
+  // the box renders a placeholder prompting the user to save first.
+  snippet?: Snippet;
+  onGenerated?: () => void;
 };
 
-const ACTIONS: { kind: AiKind; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+const ACTIONS: {
+  kind: AiKind;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+}[] = [
   { kind: "explain", icon: "information-circle-outline", label: "Explain" },
   { kind: "improve", icon: "flash-outline", label: "Improve" },
 ];
@@ -58,10 +64,11 @@ const AIBox = ({ snippet, onGenerated }: Props) => {
   };
 
   const trigger = (kind: AiKind) => {
+    if (!snippet) return;
     mutate(
       { snippet, kind },
       {
-        onSuccess: () => onGenerated(),
+        onSuccess: () => onGenerated?.(),
         onError: handleError,
       },
     );
@@ -87,33 +94,45 @@ const AIBox = ({ snippet, onGenerated }: Props) => {
         <Text style={[styles.title, { color: colors.onSurface }]}>Ask AI</Text>
       </View>
 
-      {isPending ? (
+      {!snippet ? (
+        <View style={styles.placeholder}>
+          <Text
+            style={[styles.placeholderText, { color: colors.onSurfaceVariant }]}
+          >
+            Save the snippet to ask AI.
+          </Text>
+        </View>
+      ) : isPending ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>
+          <Text
+            style={[styles.loadingText, { color: colors.onSurfaceVariant }]}
+          >
             Generating…
           </Text>
         </View>
       ) : (
-        ACTIONS.map((a) => (
-          <Pressable
-            key={a.kind}
-            onPress={() => trigger(a.kind)}
-            disabled={isPending}
-            style={({ pressed }) => [
-              styles.action,
-              {
-                backgroundColor: colors.surfaceContainerHigh,
-                opacity: pressed ? 0.85 : 1,
-              },
-            ]}
-          >
-            <Ionicons name={a.icon} size={16} color={colors.onSurface} />
-            <Text style={[styles.actionLabel, { color: colors.onSurface }]}>
-              {a.label}
-            </Text>
-          </Pressable>
-        ))
+        <View style={{ flex: 1, justifyContent: "flex-end", gap: spacing.sm }}>
+          {ACTIONS.map((a) => (
+            <Pressable
+              key={a.kind}
+              onPress={() => trigger(a.kind)}
+              disabled={isPending}
+              style={({ pressed }) => [
+                styles.action,
+                {
+                  backgroundColor: colors.surfaceContainerHigh,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <Ionicons name={a.icon} size={16} color={colors.onSurface} />
+              <Text style={[styles.actionLabel, { color: colors.onSurface }]}>
+                {a.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -151,6 +170,7 @@ const styles = StyleSheet.create({
     ...typography.bodyMd,
   },
   loadingRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -159,5 +179,16 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...typography.bodyMd,
+  },
+  placeholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  placeholderText: {
+    ...typography.bodyMd,
+    textAlign: "center",
   },
 });

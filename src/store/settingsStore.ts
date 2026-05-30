@@ -7,7 +7,7 @@ export const FONT_SIZES: FontSize[] = [12, 13, 14, 16];
 
 // OpenRouter model id. Free models change over time — keep this as a
 // configurable Settings field, default to a current free pick.
-export const DEFAULT_AI_MODEL = "deepseek/deepseek-v4-flash:free";
+export const DEFAULT_AI_MODEL = "poolside/laguna-m.1:free";
 
 type SettingsState = {
   themeMode: ThemeMode;

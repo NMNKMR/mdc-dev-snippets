@@ -132,7 +132,9 @@ const SnippetForm = ({
               },
             ]}
           >
-            <Text style={[styles.saveText, { color: colors.onPrimaryContainer }]}>
+            <Text
+              style={[styles.saveText, { color: colors.onPrimaryContainer }]}
+            >
               Save
             </Text>
           </Pressable>
@@ -181,13 +183,17 @@ const SnippetForm = ({
               ]}
             >
               <View style={styles.langBadgeWrap}>
-                <View style={[styles.langDot, { backgroundColor: langColor }]} />
+                <View
+                  style={[styles.langDot, { backgroundColor: langColor }]}
+                />
                 <Text style={[styles.langBadgeText, { color: langColor }]}>
                   {langName}
                 </Text>
               </View>
               <Divider orientation="vertical" style={styles.langDivider} />
-              <Text style={[styles.langPickerLabel, { color: colors.onSurface }]}>
+              <Text
+                style={[styles.langPickerLabel, { color: colors.onSurface }]}
+              >
                 Language Picker
               </Text>
               <View style={styles.spacer} />
@@ -244,7 +250,7 @@ const SnippetForm = ({
           </Text>
           <TagInput value={tags} onChange={setTags} />
 
-          {/* AI (dummy) + attachments — drafts saved with the snippet */}
+          {/* AI + attachments — drafts saved with the snippet */}
           <View style={styles.extras}>
             <SnippetExtras
               attachments={attachments}

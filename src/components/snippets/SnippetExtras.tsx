@@ -24,9 +24,7 @@ const SnippetExtras = ({
 }: SnippetExtrasProps) => {
   return (
     <View style={styles.row}>
-      {snippet ? (
-        <AIBox snippet={snippet} onGenerated={onGenerated ?? (() => {})} />
-      ) : null}
+      <AIBox snippet={snippet} onGenerated={onGenerated} />
       <AttachmentBox
         attachments={attachments}
         onAdd={onAdd}

@@ -1,11 +1,16 @@
+import { useTheme } from "@/context/theme";
 import { Stack } from "expo-router";
-import React from "react";
-import { StyleSheet } from "react-native";
 
 const SnippetsLayout = () => {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  const { colors } = useTheme();
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    />
+  );
 };
 
 export default SnippetsLayout;
-
-const styles = StyleSheet.create({});
