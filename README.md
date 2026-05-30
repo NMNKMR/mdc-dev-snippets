@@ -4,6 +4,20 @@ An offline-first mobile app for developers to save, organize, and understand cod
 
 Built with Expo Router, React Native, TypeScript, SQLite, AsyncStorage, SecureStore, and the new `expo-file-system` API.
 
+## Demo Video Url: https://drive.google.com/file/d/1fpUbdI-N0iTbaDVp7GkImQH3t2lyxtDQ/view?usp=drivesdk
+
+## Screenshots:
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/2388b4c5-f0bb-4a34-970f-85fcde34b50e" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/e69d3b0d-db16-4c7d-86a0-83209d8712d9" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/940ae89e-fe2e-4b69-9a91-5538aa38df43" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/e60d5c9e-563d-4136-9239-ae5743d75a4f" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/d5813419-ba07-4040-bb43-031a553a63ca" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/4694b428-3ab7-4860-ab90-44af1d7080a4" />
+<!-- <img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/86c35dfe-d204-4fcf-ad36-5ff56f7f1c12" /> -->
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/da54f09f-5758-4381-81e0-7fddacc243c7" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/c065b801-4cae-458e-a31c-b71eba62cb34" />
+<img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/8daad5cc-0709-4d0c-9c66-544de3c0e13b" />
+
 ## Get started
 
 1. Install dependencies
