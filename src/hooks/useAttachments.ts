@@ -14,6 +14,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { snippetsKeys } from "./useSnippets";
 
 export const attachmentsKeys = {
   all: ["attachments"] as const,
@@ -64,6 +65,8 @@ export function useAddImageAttachment(snippetId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: attachmentsKeys.snippet(snippetId) });
       qc.invalidateQueries({ queryKey: attachmentsKeys.manager() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.detail(snippetId) });
     },
   });
 }
@@ -75,6 +78,8 @@ export function useAddDocumentAttachment(snippetId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: attachmentsKeys.snippet(snippetId) });
       qc.invalidateQueries({ queryKey: attachmentsKeys.manager() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.detail(snippetId) });
     },
   });
 }
@@ -87,6 +92,8 @@ export function useDeleteAttachment() {
     onSuccess: (_data, { snippetId }) => {
       qc.invalidateQueries({ queryKey: attachmentsKeys.snippet(snippetId) });
       qc.invalidateQueries({ queryKey: attachmentsKeys.manager() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.lists() });
+      qc.invalidateQueries({ queryKey: snippetsKeys.detail(snippetId) });
     },
   });
 }

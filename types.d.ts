@@ -11,6 +11,9 @@ interface Snippet {
   createdAt: number;
   updatedAt: number;
   tags: string[];
+  hasAi: boolean;
+  hasImage: boolean;
+  hasFile: boolean;
 }
 
 interface SnippetRow {
@@ -21,8 +24,11 @@ interface SnippetRow {
   is_favorite: number;
   created_at: number;
   updated_at: number;
-  // Present only on rows from the tag-join queries (GROUP_CONCAT result).
+  // Populated by the list/detail join queries.
   tags?: string | null;
+  has_ai?: number;
+  has_image?: number;
+  has_file?: number;
 }
 
 interface Attachment {

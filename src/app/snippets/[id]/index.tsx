@@ -1,12 +1,15 @@
 import CodeEditor from "@/components/core/CodeEditor";
 import PickerModal, { type PickerOption } from "@/components/core/PickerModal";
+import AISheet from "@/components/snippets/AISheet";
 import CodeViewerModal from "@/components/snippets/CodeViewerModal";
 import ActionButton from "@/components/snippets/details/ActionButton";
 import LanguageBadge from "@/components/snippets/LanguageBadge";
+import LatestResponseCard from "@/components/snippets/LatestResponseCard";
 import SnippetExtras from "@/components/snippets/SnippetExtras";
 import { type AttachmentItem } from "@/components/snippets/AttachmentBox";
 import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
+import { useGenerationHistory } from "@/hooks/useAi";
 import {
     useAddDocumentAttachment,
     useAddImageAttachment,
@@ -19,6 +22,7 @@ import {
     useToggleFavorite,
 } from "@/hooks/useSnippets";
 import { useSnippetTags } from "@/hooks/useTags";
+import { relativeTime } from "@/lib/format";
 import { extensionForLanguage } from "@/lib/language";
 import { exportAndShareSnippet } from "@/services/files";
 import { useSettingsStore } from "@/store/settingsStore";
@@ -39,19 +43,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const relativeTime = (ts: number) => {
-  const days = Math.floor((Date.now() - ts) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days} days ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 5) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} month${months > 1 ? "s" : ""} ago`;
-  const years = Math.floor(days / 365);
-  return `${years} year${years > 1 ? "s" : ""} ago`;
-};
-
 export default function SnippetDetail() {
   const { colors, isDarkMode } = useTheme();
   const router = useRouter();
@@ -62,6 +53,7 @@ export default function SnippetDetail() {
   const { data: snippet, isLoading } = useSnippet(id);
   const { data: tags = [] } = useSnippetTags(id);
   const { data: attachments = [] } = useAttachments(id);
+  const { data: history = [] } = useGenerationHistory(id);
   const { mutate: toggleFavorite } = useToggleFavorite();
   const { mutateAsync: deleteSnippet } = useDeleteSnippet();
   const { mutate: addImage } = useAddImageAttachment(id);
@@ -71,6 +63,9 @@ export default function SnippetDetail() {
   const [copied, setCopied] = useState(false);
   const [codeFullscreen, setCodeFullscreen] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showAiSheet, setShowAiSheet] = useState(false);
+
+  const latestGeneration = history[0] ?? null;
 
   if (isLoading) {
     return (
@@ -258,9 +253,20 @@ export default function SnippetDetail() {
           />
         </View>
 
-        {/* AI (dummy) + attachments — saved instantly on the detail screen */}
+        {/* Latest AI response — tap "Read more" to see history in the sheet. */}
+        {latestGeneration ? (
+          <View style={styles.latestResponse}>
+            <LatestResponseCard
+              generation={latestGeneration}
+              onReadMore={() => setShowAiSheet(true)}
+            />
+          </View>
+        ) : null}
+
+        {/* AI ask + attachments — saved instantly on the detail screen */}
         <View style={styles.extras}>
           <SnippetExtras
+            snippet={snippet}
             attachments={attachments}
             onAdd={(kind) =>
               kind === "image" ? addImage("library") : addDocument()
@@ -268,6 +274,7 @@ export default function SnippetDetail() {
             onDelete={(item: AttachmentItem) => {
               if (item.id) removeAttachment({ id: item.id, snippetId: id });
             }}
+            onGenerated={() => setShowAiSheet(true)}
           />
         </View>
       </ScrollView>
@@ -314,6 +321,12 @@ export default function SnippetDetail() {
         selected="txt"
         onSelect={handleExportFormat}
         onClose={() => setShowExport(false)}
+      />
+
+      <AISheet
+        visible={showAiSheet}
+        snippet={snippet}
+        onClose={() => setShowAiSheet(false)}
       />
     </View>
   );
@@ -373,6 +386,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.lg,
     overflow: "hidden",
+  },
+  latestResponse: {
+    marginTop: spacing.lg,
   },
   extras: {
     marginTop: spacing.lg,

@@ -6,11 +6,21 @@ import Card from "@/components/settings/Card";
 import SectionHeader from "@/components/settings/SectionHeader";
 import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
+import {
+  useApiKey,
+  useClearApiKey,
+  useSaveApiKey,
+  useValidateApiKey,
+} from "@/hooks/useAi";
 import { getLanguage, LANGUAGES } from "@/lib/language";
 import { FONT_SIZES, FontSize, useSettingsStore } from "@/store/settingsStore";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useState } from "react";
+import * as Clipboard from "expo-clipboard";
+import * as WebBrowser from "expo-web-browser";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,11 +29,7 @@ import {
   View,
 } from "react-native";
 
-const DUMMY_API = {
-  apiKey: "abcdefghijkl",
-  aiModel: "Claude 3.5 Sonnet",
-  version: "v1.0.0",
-};
+const APP_VERSION = "v1.0.0";
 
 const THEME_LABELS: Record<ThemeMode, string> = {
   system: "System",
@@ -38,11 +44,33 @@ export default function Settings() {
   const themeMode = useSettingsStore((s) => s.themeMode);
   const defaultLanguage = useSettingsStore((s) => s.defaultLanguage);
   const fontSize = useSettingsStore((s) => s.fontSize);
+  const aiModel = useSettingsStore((s) => s.aiModel);
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
   const setDefaultLanguage = useSettingsStore((s) => s.setDefaultLanguage);
   const setFontSize = useSettingsStore((s) => s.setFontSize);
+  const setAiModel = useSettingsStore((s) => s.setAiModel);
+
+  // API key state from SecureStore
+  const { data: savedKey } = useApiKey();
+  const { mutateAsync: saveKey } = useSaveApiKey();
+  const { mutateAsync: clearKey } = useClearApiKey();
+  const { mutateAsync: validateKey, isPending: validating } =
+    useValidateApiKey();
 
   const [picker, setPicker] = useState<PickerKind>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [keyVisible, setKeyVisible] = useState(false);
+  const [modelInput, setModelInput] = useState(aiModel);
+
+  // Populate the input when SecureStore loads. Reacts to mount, save, clear.
+  useEffect(() => {
+    setKeyInput(savedKey ?? "");
+  }, [savedKey]);
+
+  useEffect(() => {
+    setModelInput(aiModel);
+  }, [aiModel]);
+
   const language = getLanguage(defaultLanguage);
 
   const themeOptions: PickerOption<ThemeMode>[] = [
@@ -62,6 +90,55 @@ export default function Settings() {
     label: `${s}px`,
   }));
 
+  const handlePaste = async () => {
+    const text = await Clipboard.getStringAsync();
+    if (text) setKeyInput(text.trim());
+  };
+
+  const handleValidate = async () => {
+    const k = keyInput.trim();
+    if (!k) {
+      Alert.alert("Enter a key", "Paste your OpenRouter API key first.");
+      return;
+    }
+    const ok = await validateKey(k);
+    if (!ok) {
+      Alert.alert(
+        "Invalid key",
+        "The OpenRouter API key didn't validate. Check it and try again.",
+      );
+      return;
+    }
+    await saveKey(k);
+    Alert.alert("Key saved", "Your API key was validated and saved.");
+  };
+
+  const handleClearKey = () => {
+    Alert.alert(
+      "Clear API key?",
+      "AI features will stop working until a key is added.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            await clearKey();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleGetKey = () => {
+    WebBrowser.openBrowserAsync("https://openrouter.ai/keys");
+  };
+
+  const handleModelBlur = () => {
+    const v = modelInput.trim();
+    if (v && v !== aiModel) setAiModel(v);
+  };
+
   return (
     <>
       <ScrollView
@@ -76,7 +153,7 @@ export default function Settings() {
             <Text style={[styles.apiLabel, { color: colors.onSurface }]}>
               API Key
             </Text>
-            <Pressable hitSlop={8}>
+            <Pressable hitSlop={8} onPress={handleGetKey}>
               <Text style={[styles.apiLink, { color: colors.primary }]}>
                 Get your key
               </Text>
@@ -92,19 +169,32 @@ export default function Settings() {
             ]}
           >
             <TextInput
-              value={DUMMY_API.apiKey}
-              secureTextEntry
-              editable={false}
+              value={keyInput}
+              onChangeText={setKeyInput}
+              placeholder="sk-or-v1-…"
+              placeholderTextColor={colors.onSurfaceVariant}
+              secureTextEntry={!keyVisible}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
               style={[styles.inputText, { color: colors.onSurface }]}
             />
-            <Pressable hitSlop={8} style={styles.inputIcon}>
+            <Pressable
+              hitSlop={8}
+              style={styles.inputIcon}
+              onPress={() => setKeyVisible((v) => !v)}
+            >
               <Ionicons
-                name="eye-off-outline"
+                name={keyVisible ? "eye-outline" : "eye-off-outline"}
                 size={20}
                 color={colors.onSurfaceVariant}
               />
             </Pressable>
-            <Pressable hitSlop={8} style={styles.inputIcon}>
+            <Pressable
+              hitSlop={8}
+              style={styles.inputIcon}
+              onPress={handlePaste}
+            >
               <Ionicons
                 name="clipboard-outline"
                 size={20}
@@ -113,35 +203,76 @@ export default function Settings() {
             </Pressable>
           </View>
           <Pressable
+            onPress={handleValidate}
+            disabled={validating}
             style={({ pressed }) => [
               styles.validateBtn,
               {
                 backgroundColor: colors.primaryContainer,
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed || validating ? 0.85 : 1,
               },
             ]}
           >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={18}
-              color={colors.onPrimaryContainer}
-            />
+            {validating ? (
+              <ActivityIndicator color={colors.onPrimaryContainer} />
+            ) : (
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={18}
+                color={colors.onPrimaryContainer}
+              />
+            )}
             <Text
               style={[
                 styles.validateText,
                 { color: colors.onPrimaryContainer },
               ]}
             >
-              Validate Key
+              {validating ? "Validating…" : "Validate & Save"}
             </Text>
           </Pressable>
+          {savedKey ? (
+            <Pressable
+              hitSlop={8}
+              onPress={handleClearKey}
+              style={styles.clearKey}
+            >
+              <Text style={[styles.clearKeyText, { color: colors.error }]}>
+                Clear saved key
+              </Text>
+            </Pressable>
+          ) : null}
         </Card>
+
         <Card>
-          <Dropdown
-            layout="stacked"
-            label="AI Model"
-            value={DUMMY_API.aiModel}
-          />
+          <View style={styles.modelBlock}>
+            <Text style={[styles.modelLabel, { color: colors.onSurface }]}>
+              AI Model
+            </Text>
+            <TextInput
+              value={modelInput}
+              onChangeText={setModelInput}
+              onBlur={handleModelBlur}
+              placeholder="provider/model"
+              placeholderTextColor={colors.onSurfaceVariant}
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              style={[
+                styles.modelInput,
+                {
+                  color: colors.onSurface,
+                  borderColor: colors.outlineVariant,
+                  backgroundColor: colors.surfaceContainerHigh,
+                },
+              ]}
+            />
+            <Text
+              style={[styles.modelHint, { color: colors.onSurfaceVariant }]}
+            >
+              Free models end with :free. See openrouter.ai/models
+            </Text>
+          </View>
         </Card>
 
         {/* Editor */}
@@ -218,7 +349,7 @@ export default function Settings() {
             icon={
               <Ionicons name="trash-outline" size={20} color={colors.error} />
             }
-            label="Clear AI Cache"
+            label="Clear AI History"
             labelColor={colors.error}
           />
         </Card>
@@ -231,7 +362,7 @@ export default function Settings() {
             color={colors.primaryContainer}
           />
           <Text style={[styles.footerVersion, { color: colors.onSurface }]}>
-            DevSnippets AI {DUMMY_API.version}
+            DevSnippets AI {APP_VERSION}
           </Text>
           <View style={styles.footerLinks}>
             <Text style={[styles.footerLink, { color: colors.primaryFixed }]}>
@@ -301,7 +432,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: spacing.lg,
+    paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
   apiLabel: {
@@ -338,11 +469,36 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    marginBottom: spacing.lg,
   },
   validateText: {
     ...typography.labelCaps,
     fontSize: 13,
+  },
+  clearKey: {
+    alignSelf: "center",
+    paddingVertical: spacing.sm,
+  },
+  clearKeyText: {
+    ...typography.bodyMd,
+  },
+
+  // AI model block
+  modelBlock: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  modelLabel: {
+    ...typography.bodyLg,
+  },
+  modelInput: {
+    ...typography.codeBlock,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  modelHint: {
+    ...typography.bodyMd,
   },
 
   // Footer

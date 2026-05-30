@@ -50,22 +50,43 @@ const SnippetCard = ({ snippet, onPress }: SnippetCardProps) => {
           >
             {snippet.title}
           </Text>
+          <Pressable hitSlop={8} onPress={() => toggleFavorite(snippet.id)}>
+            <Ionicons
+              name={snippet.isFavorite ? "star" : "star-outline"}
+              size={22}
+              color={
+                snippet.isFavorite ? colors.warning : colors.onSurfaceVariant
+              }
+            />
+          </Pressable>
+        </View>
+        <View style={[styles.metaRow, { justifyContent: "space-between" }]}>
           <View style={styles.metaRow}>
             <LanguageBadge language={snippet.language} />
             <Text style={[styles.date, { color: colors.onSurfaceVariant }]}>
               {formatDate(snippet.updatedAt)}
             </Text>
           </View>
+          <View style={styles.indicators}>
+            {snippet.hasAi ? (
+              <Ionicons name="sparkles" size={14} color={colors.warning} />
+            ) : null}
+            {snippet.hasImage ? (
+              <Ionicons
+                name="image-outline"
+                size={14}
+                color={colors.onSurfaceVariant}
+              />
+            ) : null}
+            {snippet.hasFile ? (
+              <Ionicons
+                name="document-outline"
+                size={14}
+                color={colors.onSurfaceVariant}
+              />
+            ) : null}
+          </View>
         </View>
-        <Pressable hitSlop={8} onPress={() => toggleFavorite(snippet.id)}>
-          <Ionicons
-            name={snippet.isFavorite ? "star" : "star-outline"}
-            size={22}
-            color={
-              snippet.isFavorite ? colors.warning : colors.onSurfaceVariant
-            }
-          />
-        </Pressable>
       </View>
 
       <View
@@ -108,9 +129,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
@@ -118,15 +136,24 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   title: {
     ...typography.headlineMd,
   },
   metaRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+  },
+  indicators: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   date: {
     ...typography.labelCaps,

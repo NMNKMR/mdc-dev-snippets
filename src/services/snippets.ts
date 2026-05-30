@@ -18,9 +18,14 @@ export type ListOptions = {
   tag?: string;
 };
 
-// SELECT fragment that aggregates each snippet's tag names into one column.
+// Aggregates tags into one column and adds boolean-ish flags for whether the
+// snippet has any AI generations / image / file attachments (for card icons).
 const SELECT_WITH_TAGS = `
-  SELECT s.*, GROUP_CONCAT(t.name, char(31)) AS tags
+  SELECT s.*,
+    GROUP_CONCAT(t.name, char(31)) AS tags,
+    EXISTS(SELECT 1 FROM ai_generations g WHERE g.snippet_id = s.id)                    AS has_ai,
+    EXISTS(SELECT 1 FROM attachments a   WHERE a.snippet_id = s.id AND a.kind = 'image') AS has_image,
+    EXISTS(SELECT 1 FROM attachments a   WHERE a.snippet_id = s.id AND a.kind = 'file')  AS has_file
   FROM snippets s
   LEFT JOIN snippet_tags st ON st.snippet_id = s.id
   LEFT JOIN tags t ON t.id = st.tag_id
@@ -35,6 +40,9 @@ const rowToSnippet = (row: SnippetRow): Snippet => ({
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   tags: row.tags ? row.tags.split(TAG_SEPARATOR) : [],
+  hasAi: row.has_ai === 1,
+  hasImage: row.has_image === 1,
+  hasFile: row.has_file === 1,
 });
 
 export async function createSnippet(
@@ -50,6 +58,9 @@ export async function createSnippet(
     createdAt: now,
     updatedAt: now,
     tags: [],
+    hasAi: false,
+    hasImage: false,
+    hasFile: false,
   };
 
   await db.runAsync(

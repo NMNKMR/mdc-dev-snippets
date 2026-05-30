@@ -1,17 +1,72 @@
 import { radius, spacing, typography } from "@/constants";
 import { useTheme } from "@/context/theme";
+import { useGenerate } from "@/hooks/useAi";
+import { isAiError } from "@/services/ai";
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
-// Dummy AI panel — the actions are placeholders until the AI flow is built.
-const AI_ACTIONS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: "document-text-outline", label: "Summary" },
-  { icon: "information-circle-outline", label: "Explain" },
-  { icon: "flash-outline", label: "Improvements" },
+type Props = {
+  snippet: Snippet;
+  onGenerated: () => void;
+};
+
+const ACTIONS: { kind: AiKind; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { kind: "explain", icon: "information-circle-outline", label: "Explain" },
+  { kind: "improve", icon: "flash-outline", label: "Improve" },
 ];
 
-const AIBox = () => {
+const AIBox = ({ snippet, onGenerated }: Props) => {
   const { colors } = useTheme();
+  const router = useRouter();
+  const { mutate, isPending } = useGenerate();
+
+  const handleError = (err: unknown) => {
+    if (!isAiError(err)) {
+      // Surface the real message — DB errors, unexpected JS exceptions, etc.
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("AI request failed", msg || "Please try again.");
+      return;
+    }
+    if (err.code === "MISSING_KEY") {
+      Alert.alert(
+        "API key required",
+        "Add your OpenRouter API key in Settings to use AI features.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Open Settings", onPress: () => router.push("/settings") },
+        ],
+      );
+      return;
+    }
+    if (err.code === "NETWORK_ERROR") {
+      Alert.alert("Offline", "AI features need an internet connection.");
+      return;
+    }
+    if (err.code === "INVALID_RESPONSE") {
+      Alert.alert("Unexpected response", err.message);
+      return;
+    }
+    Alert.alert("AI provider error", err.message);
+  };
+
+  const trigger = (kind: AiKind) => {
+    mutate(
+      { snippet, kind },
+      {
+        onSuccess: () => onGenerated(),
+        onError: handleError,
+      },
+    );
+  };
+
   return (
     <View
       style={[
@@ -32,23 +87,34 @@ const AIBox = () => {
         <Text style={[styles.title, { color: colors.onSurface }]}>Ask AI</Text>
       </View>
 
-      {AI_ACTIONS.map((action) => (
-        <Pressable
-          key={action.label}
-          style={({ pressed }) => [
-            styles.action,
-            {
-              backgroundColor: colors.surfaceContainerHigh,
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          <Ionicons name={action.icon} size={16} color={colors.onSurface} />
-          <Text style={[styles.actionLabel, { color: colors.onSurface }]}>
-            {action.label}
+      {isPending ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>
+            Generating…
           </Text>
-        </Pressable>
-      ))}
+        </View>
+      ) : (
+        ACTIONS.map((a) => (
+          <Pressable
+            key={a.kind}
+            onPress={() => trigger(a.kind)}
+            disabled={isPending}
+            style={({ pressed }) => [
+              styles.action,
+              {
+                backgroundColor: colors.surfaceContainerHigh,
+                opacity: pressed ? 0.85 : 1,
+              },
+            ]}
+          >
+            <Ionicons name={a.icon} size={16} color={colors.onSurface} />
+            <Text style={[styles.actionLabel, { color: colors.onSurface }]}>
+              {a.label}
+            </Text>
+          </Pressable>
+        ))
+      )}
     </View>
   );
 };
@@ -69,9 +135,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
   },
-  spacer: {
-    flex: 1,
-  },
   title: {
     ...typography.headlineMd,
     marginBottom: spacing.xs,
@@ -85,6 +148,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   actionLabel: {
+    ...typography.bodyMd,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  loadingText: {
     ...typography.bodyMd,
   },
 });
