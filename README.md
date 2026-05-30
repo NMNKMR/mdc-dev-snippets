@@ -4,7 +4,8 @@ An offline-first mobile app for developers to save, organize, and understand cod
 
 Built with Expo Router, React Native, TypeScript, SQLite, AsyncStorage, SecureStore, and the new `expo-file-system` API.
 
-## Demo Video Url: https://drive.google.com/file/d/1fpUbdI-N0iTbaDVp7GkImQH3t2lyxtDQ/view?usp=drivesdk
+## Demo Video URL: 
+https://drive.google.com/file/d/1fpUbdI-N0iTbaDVp7GkImQH3t2lyxtDQ/view?usp=drivesdk
 
 ## Screenshots:
 <img width="250" height="520" alt="image" src="https://github.com/user-attachments/assets/2388b4c5-f0bb-4a34-970f-85fcde34b50e" />
